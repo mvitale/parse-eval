@@ -11,6 +11,10 @@ struct
   (* Raised when an error occurs during parsing. *)
   exception parse_error of string
 
+
+  (* A shorter name for Tokens. *)
+  structure T = Tokens
+
   (* parse_expression lexer is the AST for the expression defined by the
    * tokens yielded by lexer up to the first Tokens.EOS token.
    *)
