@@ -54,6 +54,10 @@ struct
 
     do_test_ast("Neg2", "~xyz ;", Ast.UnOp(Ast.NEG, Ast.Ident("xyz"))) ;
 
+    do_test_ast("Paren1", "x + (y + z) ;", 
+      Ast.BinOp(Ast.PLUS, Ast.Ident("x"), 
+        Ast.BinOp(Ast.PLUS, Ast.Ident("y"), Ast.Ident("z")))) ;
+
     (*
     do_test_ast("Bool1", "x andalso y;",
       Ast.BinOp(Ast.AND, Ast.Ident "x", Ast.Ident "y")) ;
@@ -141,7 +145,7 @@ struct
     do_test_eval("Eval arith 2", "2 - 2;", Ast.Number(0)) ;
     do_test_eval("Eval arith 3", "5 * 6 + 1;", Ast.Number(31)) ;
     do_test_eval("Eval arith 4", "2 / 2;", Ast.Number(1)) ;
-
+    do_test_eval("Eval arith paren 1", "(2 + 1) * 3;", Ast.Number(9)) ;
     (*
     do_test_eval("Eval cond. 2", "if false then 0 else 1 fi;", Ast.Number(1)) ;
     do_test_eval("Eval cond. 3", "if 3 <= 5 then 0 else 1 fi;", Ast.Number(0)) ;

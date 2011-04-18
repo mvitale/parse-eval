@@ -46,6 +46,7 @@ struct
     * on ops of lesser or equal precedence than op.
     *)
     fun force_ops _ es [] = (es, [])
+      | force_ops _ es (T.LParen::ops) = (es, (T.LParen::ops))
       | force_ops opr es (opr'::ops) =
           if prec opr <= prec (Opr(opr')) then
             let
@@ -58,6 +59,19 @@ struct
           else
             (es, (opr'::ops))
 
+    (* force_ops_to_lparen es ops = (es', ops') where es' and ops' are the
+    * expression and operation stacks resulting from forcing all operations
+    * on ops to the first Tokens.LParen and then popping the LParen from ops.
+    *)
+    fun force_ops_to_lparen es (T.LParen::ops) = (es, ops)
+      | force_ops_to_lparen es ops =
+        let
+          val stacks = force_op es ops
+        in
+          case stacks of
+            (es', ops') => force_ops_to_lparen es' ops'
+        end
+        
     (* force_all_ops es ops = the Ast representing the result of forcing all
     * operations on ops.
     *)
@@ -86,6 +100,14 @@ struct
           in
             case stacks of
               (es', ops') => parse_tokens lexer es' (tok::ops')
+          end
+        | T.LParen => parse_tokens lexer es (T.LParen::ops)
+        | T.RParen => 
+          let
+            val stacks = force_ops_to_lparen es ops
+          in
+            case stacks of
+              (es', ops') => parse_tokens lexer es' ops'
           end
         | T.EOS => force_all_ops es ops
     end
