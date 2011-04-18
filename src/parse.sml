@@ -88,6 +88,7 @@ struct
             case stacks of
               (es', ops') => parse_tokens lexer es' (tok::ops')
           end
+        | T.EOS = force_all_ops es ops
     end
   in
     parse_tokens lexer [] []
