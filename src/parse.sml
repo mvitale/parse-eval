@@ -31,7 +31,7 @@ struct
     fun prec (Opr(T.Binop(Ast.PLUS)) | Opr(T.Binop(Ast.SUB))) = 1
       | prec (Opr(T.Binop(Ast.TIMES)) | Opr(T.Binop(Ast.DIV))) = 2
       | prec (Opr(T.Unop(Ast.NEG))) = 3
-      | prec FINISH = 100
+      | prec FINISH = 0
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
@@ -43,7 +43,7 @@ struct
 
     (* force_ops op es ops = (es', ops') where es' and ops' are the new
     * expression and operation stacks resulting from forcing all operations
-    * on ops of greater precedence than op.
+    * on ops of lesser or equal precedence than op.
     *)
     fun force_ops _ es [] = (es, [])
       | force_ops opr es (opr'::ops) =

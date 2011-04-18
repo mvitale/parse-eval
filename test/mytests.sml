@@ -43,10 +43,14 @@ struct
     do_test_ast("Add1", "5 + 2 ;", 
       Ast.BinOp(Ast.PLUS, Ast.Number(5), Ast.Number(2))) ;
 
-    do_test_ast("Times1", "2 * x ;", 
+    do_test_ast("Add2", "1 + 2 + 3 ;",
+      Ast.BinOp(Ast.PLUS, Ast.BinOp(Ast.PLUS, Ast.Number(1), Ast.Number(2)),
+                Ast.Number(3))) ;
+
+    do_test_ast("Times1", "5 * x ;", 
       Ast.BinOp(Ast.TIMES, Ast.Number(5), Ast.Ident("x"))) ;
 
-    do_test_ast("Neg1", "~2 ;", Ast.UnOp(Ast.NEG, Ast.Number(2)) ;
+    do_test_ast("Neg1", "~2 ;", Ast.UnOp(Ast.NEG, Ast.Number(2))) ;
 
     do_test_ast("Neg2", "~xyz ;", Ast.UnOp(Ast.NEG, Ast.Ident("xyz"))) ;
 
@@ -129,8 +133,16 @@ struct
   )
   val test_eval = fn () => (
     do_test_eval("Eval num 1", "5;", Ast.Number(5)) ;
+
+    (*
     do_test_eval("Eval true", "true;", Ast.Boolean(true)) ;
+    *)
+
     do_test_eval("Eval arith 2", "2 - 2;", Ast.Number(0)) ;
+    do_test_eval("Eval arith 3", "5 * 6 + 1;", Ast.Number(31)) ;
+    do_test_eval("Eval arith 4", "2 / 2;", Ast.Number(1)) ;
+
+    (*
     do_test_eval("Eval cond. 2", "if false then 0 else 1 fi;", Ast.Number(1)) ;
     do_test_eval("Eval cond. 3", "if 3 <= 5 then 0 else 1 fi;", Ast.Number(0)) ;
 
@@ -156,7 +168,7 @@ struct
     do_test_eval("Eval app 3", "(fn x => x)(fn y => y + y);",
         Ast.Abs("y", Ast.BinOp(Ast.PLUS, Ast.Ident("y"),
         Ast.Ident("y")))) ;
-
+    *)
     true
   )
 
@@ -175,7 +187,7 @@ struct
 
   fun run_tests(arg0 : string, args : string list) = 
     BackTrace.monitor(fn () =>
-      (U.run_tests(fn () => (test_ast() ; test_eval() ; test_eval_file() )) ; 0)
+      (U.run_tests(fn () => (test_ast(); test_eval())) ; 0)
     )
 
 end

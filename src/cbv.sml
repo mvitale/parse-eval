@@ -16,6 +16,7 @@ struct
   (* eval_expr e is the value to which the expression e evaluates. *)
   fun eval_expr (Ast.Number(num)) = num
     | eval_expr (Ast.UnOp(Ast.NEG, e)) = ~(eval_expr e)
+    | eval_expr (Ast.BinOp(Ast.SUB, e1, e2)) = (eval_expr e1) - (eval_expr e2)
     | eval_expr (Ast.BinOp(Ast.PLUS, e1, e2)) = (eval_expr e1) + (eval_expr e2)
     | eval_expr (Ast.BinOp(Ast.TIMES, e1, e2)) = (eval_expr e1) * (eval_expr e2)
     | eval_expr (Ast.BinOp(Ast.DIV, e1, e2)) = (eval_expr e1) div (eval_expr e2)
@@ -25,6 +26,6 @@ struct
   (* eval_pgm p is the value to which the program p evaluates. *)
   fun eval_pgm p = 1
 
-  (* values2ast v is the AST corresponding to the value v. *)
-  fun values2ast v = Ast.NEG
+  (* value2ast v is the AST corresponding to the value v. *)
+  fun value2ast v = Ast.Number(v)
 end
