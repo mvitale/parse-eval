@@ -27,3 +27,4 @@ struct
 
   (* values2ast v is the AST corresponding to the value v. *)
   fun values2ast v = Ast.NEG
+end
