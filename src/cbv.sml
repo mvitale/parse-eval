@@ -14,11 +14,11 @@ struct
   type value = int
 
   (* eval_expr e is the value to which the expression e evaluates. *)
-  fun eval_expr Number(num) = num
-    | eval_expr UnOp(NEG, e) = ~(eval_expr e)
-    | eval_expr BinOp(PLUS, e1, e2) = (eval_expr e1) + (eval_expr e2)
-    | eval_expr BinOp(TIMES, e1, e2) = (eval_expr e1) * (eval_expr e2)
-    | eval_expr BinOp(DIV, e1, e2) = (eval_expr e1) div (eval_expr e2)
+  fun eval_expr (Ast.Number(num)) = num
+    | eval_expr (Ast.UnOp(Ast.NEG, e)) = ~(eval_expr e)
+    | eval_expr (Ast.BinOp(Ast.PLUS, e1, e2)) = (eval_expr e1) + (eval_expr e2)
+    | eval_expr (Ast.BinOp(Ast.TIMES, e1, e2)) = (eval_expr e1) * (eval_expr e2)
+    | eval_expr (Ast.BinOp(Ast.DIV, e1, e2)) = (eval_expr e1) div (eval_expr e2)
 
   (* Unimplemented functions *)
 
