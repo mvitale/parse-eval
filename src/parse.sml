@@ -20,6 +20,14 @@ struct
   *)
   fun parse_expression lexer =
   let
+
+    (* prec op = the precedence of operator op, i.e., an int such that
+    * if op1 has greater precedence than op2, (prec op1 > prec op2.
+    *)
+    fun prec (Ast.PLUS | Ast.SUB) = 1
+      | prec (Ast.TIMES | Ast.DIV) = 2
+      | prec Ast.NEG = 3
+
     (* parse_tokens lexer es ops is the AST for the expression defined
     * by the contents of es and ops together with the remaining tokens
     * yielded by lexer up to the first Tokens.EOL token, where es is 
@@ -66,6 +74,7 @@ struct
             end
           else
             (es, (op'::ops))
+
   in
     parse_tokens lexer es ops
   end
