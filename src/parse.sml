@@ -33,7 +33,6 @@ struct
       | prec Ast.NEG = 3
       | prec FINISH = 100
 
-
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
     *)
@@ -97,5 +96,29 @@ struct
   (* parse_program lexer is the AST.pgm for the program defined by the tokens
   *  yielded by lexer up to the Tokens.EOF token.
   *)
+  fun parse_program lexer =
+  let
+    (* parse_partial_program lexer stmts is the AST.pgm for the program
+    * yielded by lexer up to the Tokens.EOF token along with the 
+    * Ast.stmt's contained in stmts.
+    *)
+    fun parse_partial_program lexer stmts =
+    let
+      val tok = lexer()
+    in
+      case tok of
+        T.Assign(id) =>
+          let 
+            val e = parse_expression lexer
+            val s = Ast.Assign(id, e)
+          in
+            parse_partial_program lexer (s::stmts)
+          end
+        | T.EOF => Program(stmts)
+    end
+  in
+    parse_partial_program lexer []
+  end
+
 
 end
