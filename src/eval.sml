@@ -20,6 +20,10 @@ struct
     | eval_expr BinOp(TIMES, e1, e2) = (eval_expr e1) * (eval_expr e2)
     | eval_expr BinOp(DIV, e1, e2) = (eval_expr e1) div (eval_expr e2)
 
+  (* Unimplemented functions *)
+
   (* eval_pgm p is the value to which the program p evaluates. *)
+  fun eval_pgm p = 1
 
   (* values2ast v is the AST corresponding to the value v. *)
+  fun values2ast v = Ast.NEG
