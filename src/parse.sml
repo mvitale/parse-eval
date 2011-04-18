@@ -11,9 +11,13 @@ struct
   (* Raised when an error occurs during parsing. *)
   exception parse_error of string
 
-
   (* A shorter name for Tokens. *)
   structure T = Tokens
+
+  (* A datatype to represent FINISH pseudo-operator with higher precedence
+  * than any other operator.
+  *)
+  datatype finish = FINISH
 
   (* parse_expression lexer is the AST for the expression defined by the
   *  tokens yielded by lexer up to the first Tokens.EOS token.
@@ -27,28 +31,8 @@ struct
     fun prec (Ast.PLUS | Ast.SUB) = 1
       | prec (Ast.TIMES | Ast.DIV) = 2
       | prec Ast.NEG = 3
+      | prec FINISH = 100
 
-    (* parse_tokens lexer es ops is the AST for the expression defined
-    * by the contents of es and ops together with the remaining tokens
-    * yielded by lexer up to the first Tokens.EOL token, where es is 
-    * the expression stack and ops is the operation stack.
-    *)
-    fun parse_tokens lexer es ops =
-    let
-      val tok = lexer()
-    in
-      case tok of
-        T.Ident(id) => parse_tokens lexer Ast.Ident(id)::es ops
-        | T.Num(x)) => parse_tokens lexer Ast.Number(x)::es ops
-        | (T.Unop(op) | T.Binop(op)) => 
-            let
-              val stacks = force_ops op es ops 
-            in
-              case stacks of
-                (es', ops') => parse_tokens lexer es' op::ops'
-            end
-        | T.EOL => finish es ops
-    end
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
@@ -75,8 +59,38 @@ struct
           else
             (es, (op'::ops))
 
+    (* force_all_ops es ops = the Ast representing the result of forcing all
+    * operations on ops.
+    *)
+    fun force_all_ops es ops =
+    let
+      val es' = #1(force_ops FINISH es ops)
+    in
+      hd es'
+    end
+
+    (* parse_tokens lexer es ops is the AST for the expression defined
+    * by the contents of es and ops together with the remaining tokens
+    * yielded by lexer up to the first Tokens.EOL token, where es is 
+    * the expression stack and ops is the operation stack.
+    *)
+    fun parse_tokens lexer es ops =
+    let
+      val tok = lexer()
+    in
+      case tok of
+        T.Ident(id) = parse_tokens lexer (Ast.Ident(id)::es) ops
+        | T.Num(num) = parse_tokens lexer (Ast.Number(num)::es) ops
+        | (T.Unop(op) | T.Binop(op)) = 
+          let
+            val stacks = force_ops tok es ops
+          in
+            case stacks of
+              (es', ops') => parse_tokens lexer es' (tok::ops')
+          end
+    end
   in
-    parse_tokens lexer es ops
+    parse_tokens lexer [] []
   end
   
   (* parse_program lexer is the AST.pgm for the program defined by the tokens
