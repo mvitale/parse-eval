@@ -36,27 +36,27 @@ struct
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
     *)
-    fun force_op (e::es) (T.Unop(op)::ops) = 
-          ((Ast.UnOp(op, e)::es), ops)
-      | force_op (right::left::es) (T.Binop(op)::ops) = 
-          ((Ast.BinOp(op, left, right)::es), ops)
+    fun force_op (e::es) ((T.Unop(o))::ops) = 
+        (((Ast.UnOp(o, e))::es), ops)
+      | force_op (right::left::es) (T.Binop(o)::ops) = 
+          ((Ast.BinOp(o, left, right)::es), ops)
 
     (* force_ops op es ops = (es', ops') where es' and ops' are the new
     * expression and operation stacks resulting from forcing all operations
     * on ops of greater precedence than op.
     *)
     fun force_ops _ es [] = (es, [])
-      | force_ops op es (op'::ops) =
-          if prec(op) < prec(op') then
+      | force_ops o es (o'::ops) =
+          if prec(o) < prec(o') then
             let
-              val stacks = force_op es (op'::ops)
+              val stacks = force_op es (o'::ops)
               val es' = #1 stacks
               val ops' = #2 stacks
             in
-              force_ops op es' ops'
+              force_ops o es' ops'
             end
           else
-            (es, (op'::ops))
+            (es, (o'::ops))
 
     (* force_all_ops es ops = the Ast representing the result of forcing all
     * operations on ops.
@@ -78,16 +78,16 @@ struct
       val tok = lexer()
     in
       case tok of
-        T.Ident(id) = parse_tokens lexer (Ast.Ident(id)::es) ops
-        | T.Num(num) = parse_tokens lexer (Ast.Number(num)::es) ops
-        | (T.Unop(op) | T.Binop(op)) = 
+        T.Ident(id) => parse_tokens lexer ((Ast.Ident(id))::es) ops
+        | T.Num(num) => parse_tokens lexer ((Ast.Number(num))::es) ops
+        | (T.Unop(o) | T.Binop(o)) => 
           let
             val stacks = force_ops tok es ops
           in
             case stacks of
               (es', ops') => parse_tokens lexer es' (tok::ops')
           end
-        | T.EOS = force_all_ops es ops
+        | T.EOS => force_all_ops es ops
     end
   in
     parse_tokens lexer [] []
