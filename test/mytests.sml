@@ -62,7 +62,6 @@ struct
         Ast.BinOp(Ast.PLUS, Ast.Ident("y"), Ast.Ident("z")))) ;
 
 
-    (*
     do_test_ast("Bool1", "x andalso y;",
       Ast.BinOp(Ast.AND, Ast.Ident "x", Ast.Ident "y")) ;
     do_test_ast("Bool4", "not x andalso y;",
@@ -71,7 +70,7 @@ struct
       Ast.BinOp(Ast.OR,
                 Ast.BinOp(Ast.LT, Ast.Ident "x", Ast.Ident "y"),
                 Ast.BinOp(Ast.LT, Ast.Ident "z", Ast.Ident "y"))) ;
-
+    (*
     do_test_ast("List 1", "[];", Ast.NilList) ;
     do_test_ast("List 2", "2 :: 3 :: [];",
       Ast.BinOp(Ast.CONS, Ast.Number 2,

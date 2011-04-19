@@ -27,14 +27,17 @@ struct
     (* prec op = the precedence of operator op, i.e., an int such that
     * if op1 has greater precedence than op2, prec op1 > prec op2.
     *)
-    fun prec (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB)) = 1
-      | prec (T.Binop(Ast.TIMES) | T.Binop(Ast.DIV)) = 2
-      | prec (T.Unop(Ast.NEG)) = 3
+    fun prec (T.Binop(Ast.AND) | T.Binop(Ast.OR)) = 2
+      | prec (T.Binop(Ast.LT) | T.Binop(Ast.LE) | T.Binop(Ast.GT) |
+              T.Binop(Ast.GE) | T.Binop(Ast.EQ) | T.Binop(Ast.NE)) = 3
+      | prec (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB)) = 5
+      | prec (T.Binop(Ast.TIMES) | T.Binop(Ast.DIV)) = 6
+      | prec (T.Unop(Ast.NEG) | T.Unop(Ast.NOT)) = 8
 
     (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
     fun assoc ((T.Binop(Ast.PLUS)) | (T.Binop(Ast.SUB)) | (T.Binop(Ast.TIMES)) |
-               (T.Binop(Ast.DIV))) = LEFT
-      | assoc (T.Unop(Ast.NEG)) = RIGHT
+               (T.Binop(Ast.DIV)) | (T.Binop(Ast.AND)) | (T.Binop(Ast.OR))) = LEFT
+      | assoc (T.Unop(Ast.NEG) | T.Unop(Ast.NOT)) = RIGHT
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
@@ -54,8 +57,7 @@ struct
         let
           val p = prec opr
           val p' = prec opr'
-        in
-          if p < p' orelse (p = p' andalso assoc opr = LEFT) then
+        in if p < p' orelse (p = p' andalso assoc opr = LEFT) then
             let
               val stacks = force_op es (opr'::ops)
             in
@@ -91,6 +93,8 @@ struct
       case tok of
         T.Ident(id) => parse_tokens lexer ((Ast.Ident(id))::es) ops
         | T.Num(num) => parse_tokens lexer ((Ast.Number(num))::es) ops
+        | T.True => parse_tokens lexer ((Ast.Boolean(true))::es) ops
+        | T.False => parse_tokens lexer ((Ast.Boolean(false))::es) ops
         | (T.Unop(_) | T.Binop(_)) => 
           let
             val stacks = force_ops tok es ops
