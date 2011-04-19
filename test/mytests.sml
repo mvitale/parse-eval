@@ -150,6 +150,7 @@ struct
     do_test_eval("Eval arith 3", "5 * 6 + 1;", Ast.Number(31)) ;
     do_test_eval("Eval arith 4", "2 / 2;", Ast.Number(1)) ;
     do_test_eval("Eval arith paren 1", "(2 + 1) * 3;", Ast.Number(9)) ;
+    do_test_eval("Eval assoc. neg. 1", "2 + ~3 ;", Ast.Number(~1)) ;
     (*
     do_test_eval("Eval cond. 2", "if false then 0 else 1 fi;", Ast.Number(1)) ;
     do_test_eval("Eval cond. 3", "if 3 <= 5 then 0 else 1 fi;", Ast.Number(0)) ;
