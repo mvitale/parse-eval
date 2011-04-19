@@ -14,10 +14,9 @@ struct
   (* A shorter name for Tokens. *)
   structure T = Tokens
 
-  (* A datatype to represent the operations we push on the operation stack
-  * as well as the pseudo-operator FINISH.
+  (* An 'enumerated type' to represent left and right operator associativity.
   *)
-  datatype oprs = Opr of T.t | FINISH
+  datatype lr = LEFT | RIGHT
 
   (* parse_expression lexer is the AST for the expression defined by the
   *  tokens yielded by lexer up to the first Tokens.EOS token.
@@ -28,10 +27,14 @@ struct
     (* prec op = the precedence of operator op, i.e., an int such that
     * if op1 has greater precedence than op2, prec op1 > prec op2.
     *)
-    fun prec (Opr(T.Binop(Ast.PLUS)) | Opr(T.Binop(Ast.SUB))) = 1
-      | prec (Opr(T.Binop(Ast.TIMES)) | Opr(T.Binop(Ast.DIV))) = 2
-      | prec (Opr(T.Unop(Ast.NEG))) = 3
-      | prec FINISH = 0
+    fun prec (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB)) = 1
+      | prec (T.Binop(Ast.TIMES) | T.Binop(Ast.DIV)) = 2
+      | prec (T.Unop(Ast.NEG)) = 3
+
+    (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
+    fun assoc ((T.Binop(Ast.PLUS)) | (T.Binop(Ast.SUB)) | (T.Binop(Ast.TIMES)) |
+               (T.Binop(Ast.DIV))) = LEFT
+      | assoc (T.Unop(Ast.NEG)) = RIGHT
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
@@ -48,16 +51,20 @@ struct
     fun force_ops _ es [] = (es, [])
       | force_ops _ es (T.LParen::ops) = (es, (T.LParen::ops))
       | force_ops opr es (opr'::ops) =
-          if prec opr <= prec (Opr(opr')) then
+        let
+          val p = prec opr
+          val p' = prec opr'
+        in
+          if p < p' orelse (p = p' andalso assoc opr = LEFT) then
             let
               val stacks = force_op es (opr'::ops)
-              val es' = #1 stacks
-              val ops' = #2 stacks
             in
-              force_ops opr es' ops'
+              case stacks of
+                (es', ops') => force_ops opr es' ops'
             end
           else
             (es, (opr'::ops))
+        end
 
     (* force_ops_to_lparen es ops = (es', ops') where es' and ops' are the
     * expression and operation stacks resulting from forcing all operations
@@ -72,16 +79,6 @@ struct
             (es', ops') => force_ops_to_lparen es' ops'
         end
         
-    (* force_all_ops es ops = the Ast representing the result of forcing all
-    * operations on ops.
-    *)
-    fun force_all_ops es ops =
-    let
-      val es' = #1(force_ops FINISH es ops)
-    in
-      hd es'
-    end
-
     (* parse_tokens lexer es ops is the AST for the expression defined
     * by the contents of es and ops together with the remaining tokens
     * yielded by lexer up to the first Tokens.EOL token, where es is 
@@ -96,7 +93,7 @@ struct
         | T.Num(num) => parse_tokens lexer ((Ast.Number(num))::es) ops
         | (T.Unop(_) | T.Binop(_)) => 
           let
-            val stacks = force_ops (Opr(tok)) es ops
+            val stacks = force_ops tok es ops
           in
             case stacks of
               (es', ops') => parse_tokens lexer es' (tok::ops')
@@ -109,10 +106,10 @@ struct
             case stacks of
               (es', ops') => parse_tokens lexer es' ops'
           end
-        | T.EOS => force_all_ops es ops
+        | T.EOS => hd (#1 (force_ops_to_lparen es ops))
     end
   in
-    parse_tokens lexer [] []
+    parse_tokens lexer [] [T.LParen]
   end
   
   (* parse_program lexer is the AST.pgm for the program defined by the tokens

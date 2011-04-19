@@ -54,9 +54,13 @@ struct
 
     do_test_ast("Neg2", "~xyz ;", Ast.UnOp(Ast.NEG, Ast.Ident("xyz"))) ;
 
+    do_test_ast("Neg3", "~2 + 3 ;", 
+      Ast.BinOp(Ast.PLUS, Ast.UnOp(Ast.NEG, Ast.Number(2)), Ast.Number(3))) ;
+
     do_test_ast("Paren1", "x + (y + z) ;", 
       Ast.BinOp(Ast.PLUS, Ast.Ident("x"), 
         Ast.BinOp(Ast.PLUS, Ast.Ident("y"), Ast.Ident("z")))) ;
+
 
     (*
     do_test_ast("Bool1", "x andalso y;",
