@@ -35,8 +35,8 @@ struct
       | prec (T.Unop(Ast.NEG) | T.Unop(Ast.NOT)) = 8
 
     (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
-    fun assoc ((T.Binop(Ast.PLUS)) | (T.Binop(Ast.SUB)) | (T.Binop(Ast.TIMES)) |
-               (T.Binop(Ast.DIV)) | (T.Binop(Ast.AND)) | (T.Binop(Ast.OR))) = LEFT
+    fun assoc (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB) | T.Binop(Ast.TIMES) |
+               T.Binop(Ast.DIV) | T.Binop(Ast.AND) | T.Binop(Ast.OR)) = LEFT
       | assoc (T.Unop(Ast.NEG) | T.Unop(Ast.NOT)) = RIGHT
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
@@ -68,17 +68,17 @@ struct
             (es, (opr'::ops))
         end
 
-    (* force_ops_to_lparen es ops = (es', ops') where es' and ops' are the
-    * expression and operation stacks resulting from forcing all operations
-    * on ops to the first Tokens.LParen and then popping the LParen from ops.
+    (* force_ops_to_op opr es ops = (es', ops') where es' and ops' are the
+    * expression and operation stacks resulting from forcing operations
+    * until opr is on top of ops, then popping that occurrence from ops. 
     *)
-    fun force_ops_to_lparen es (T.LParen::ops) = (es, ops)
-      | force_ops_to_lparen es ops =
+    fun force_ops_to_op T.LParen es (T.LParen::ops) = (es, ops)
+      | force_ops_to_op opr es ops =
         let
           val stacks = force_op es ops
         in
           case stacks of
-            (es', ops') => force_ops_to_lparen es' ops'
+            (es', ops') => force_ops_to_op opr es' ops'
         end
         
     (* parse_tokens lexer es ops is the AST for the expression defined
@@ -105,12 +105,12 @@ struct
         | T.LParen => parse_tokens lexer es (T.LParen::ops)
         | T.RParen => 
           let
-            val stacks = force_ops_to_lparen es ops
+            val stacks = force_ops_to_op T.LParen es ops
           in
             case stacks of
               (es', ops') => parse_tokens lexer es' ops'
           end
-        | T.EOS => hd (#1 (force_ops_to_lparen es ops))
+        | T.EOS => hd (#1 (force_ops_to_op T.LParen es ops))
     end
   in
     parse_tokens lexer [] [T.LParen]
