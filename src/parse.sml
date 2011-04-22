@@ -73,6 +73,9 @@ struct
     * until opr is on top of ops, then popping that occurrence from ops. 
     *)
     fun force_ops_to_op T.LParen es (T.LParen::ops) = (es, ops)
+      | force_ops_to_op T.If es (T.If::ops) = (es, ops)
+      | force_ops_to_op T.Then es (T.Then::ops) = (es, ops)
+      | force_ops_to_op T.Else es (T.Else::ops) = (es, ops)
       | force_ops_to_op opr es ops =
         let
           val stacks = force_op es ops
@@ -100,7 +103,7 @@ struct
             val stacks = force_ops tok es ops
           in
             case stacks of
-              (es', ops') => parse_tokens lexer es' (tok::ops')
+                 (es', ops') => parse_tokens lexer es' (tok::ops')
           end
         | T.LParen => parse_tokens lexer es (T.LParen::ops)
         | T.RParen => 
@@ -108,9 +111,32 @@ struct
             val stacks = force_ops_to_op T.LParen es ops
           in
             case stacks of
-              (es', ops') => parse_tokens lexer es' ops'
+                 (es', ops') => parse_tokens lexer es' ops'
           end
         | T.EOS => hd (#1 (force_ops_to_op T.LParen es ops))
+        | T.If => parse_tokens lexer es (T.If::ops)
+        | T.Then =>
+          let
+            val stacks = force_ops_to_op T.If es ops
+          in
+            case stacks of
+                 (es', ops') => parse_tokens lexer es' (T.Then::ops')
+          end
+        | T.Else =>
+          let
+            val stacks = force_ops_to_op T.Then es ops
+          in
+            case stacks of
+                 (es', ops') => parse_tokens lexer es' (T.Else::ops')
+          end
+        | T.Endif =>
+          let
+            val stacks = force_ops_to_op T.Else es ops
+          in
+            case stacks of
+                 ((e3::e2::e1::es'), ops') => 
+                  parse_tokens lexer (Ast.Cond(e1, e2, e3)::es') ops'
+          end
     end
   in
     parse_tokens lexer [] [T.LParen]

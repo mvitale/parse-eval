@@ -70,6 +70,13 @@ struct
       Ast.BinOp(Ast.OR,
                 Ast.BinOp(Ast.LT, Ast.Ident "x", Ast.Ident "y"),
                 Ast.BinOp(Ast.LT, Ast.Ident "z", Ast.Ident "y"))) ;
+    do_test_ast("Cond1", "if true then 1 else 2 fi;",
+      Ast.Cond(Ast.Boolean(true), Ast.Number(1), Ast.Number(2))) ;
+    do_test_ast("Cond2", "if if true then true else false fi then 1 else 2 fi;",
+      Ast.Cond(Ast.Cond(Ast.Boolean(true), Ast.Boolean(true), 
+                        Ast.Boolean(false)),
+               Ast.Number(1),
+               Ast.Number(2))) ;
     (*
     do_test_ast("List 1", "[];", Ast.NilList) ;
     do_test_ast("List 2", "2 :: 3 :: [];",
