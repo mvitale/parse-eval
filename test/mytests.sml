@@ -70,6 +70,10 @@ struct
       Ast.BinOp(Ast.OR,
                 Ast.BinOp(Ast.LT, Ast.Ident "x", Ast.Ident "y"),
                 Ast.BinOp(Ast.LT, Ast.Ident "z", Ast.Ident "y"))) ;
+
+    do_test_ast("Bool6", "3 <= 4 ;", Ast.BinOp(Ast.LE, Ast.Number(3),
+                                               Ast.Number(4))) ;
+    
     do_test_ast("Cond1", "if true then 1 else 2 fi;",
       Ast.Cond(Ast.Boolean(true), Ast.Number(1), Ast.Number(2))) ;
     do_test_ast("Cond2", "if if true then true else false fi then 1 else 2 fi;",
@@ -77,6 +81,9 @@ struct
                         Ast.Boolean(false)),
                Ast.Number(1),
                Ast.Number(2))) ;
+    do_test_ast("Cond3", "if 3 = 2 then x else y fi;",
+      Ast.Cond(Ast.BinOp(Ast.EQ, Ast.Number(3), Ast.Number(2)), Ast.Ident("x"),
+               Ast.Ident("y"))) ;
     (*
     do_test_ast("List 1", "[];", Ast.NilList) ;
     do_test_ast("List 2", "2 :: 3 :: [];",
@@ -161,10 +168,11 @@ struct
     do_test_eval("Eval bool 1", "true andalso false ;", Ast.Boolean(false));
     do_test_eval("Eval bool 2", "true andalso (false orelse 2 = 2) ;",
                  Ast.Boolean(true)) ;
-    (*
+
     do_test_eval("Eval cond. 2", "if false then 0 else 1 fi;", Ast.Number(1)) ;
     do_test_eval("Eval cond. 3", "if 3 <= 5 then 0 else 1 fi;", Ast.Number(0)) ;
-    
+
+    (*
     do_test_eval("Eval list 1", "[];", Ast.NilList) ;
     do_test_eval("Eval list 2", "1 :: [];", 
         Ast.BinOp(Ast.CONS, Ast.Number(1), Ast.NilList)) ;

@@ -33,6 +33,7 @@ struct
       | prec (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB)) = 5
       | prec (T.Binop(Ast.TIMES) | T.Binop(Ast.DIV)) = 6
       | prec (T.Unop(Ast.NEG) | T.Unop(Ast.NOT)) = 8
+      | prec (T.If) = raise parse_error "Tried to check the precedence of T.If token"  
 
     (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
     fun assoc (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB) | T.Binop(Ast.TIMES) |
@@ -53,6 +54,9 @@ struct
     *)
     fun force_ops _ es [] = (es, [])
       | force_ops _ es (T.LParen::ops) = (es, (T.LParen::ops))
+      | force_ops _ es (T.If::ops) = (es, (T.If::ops))
+      | force_ops _ es (T.Then::ops) = (es, (T.Then::ops))
+      | force_ops _ es (T.Else::ops) = (es, (T.Else::ops))
       | force_ops opr es (opr'::ops) =
         let
           val p = prec opr

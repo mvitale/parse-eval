@@ -65,6 +65,15 @@ struct
                 (case e1' of Boolean bool1 => case e2' of Boolean bool2 =>
                 Boolean (bool1 orelse bool2))
       end
+    | eval_expr (Ast.Cond(e1, e2, e3)) =
+      let
+        val e1' = eval_expr e1
+      in
+        case e1' of
+             Boolean(true) => eval_expr e2
+           | Boolean(false) => eval_expr e3
+      end
+  
 
 
   (* eval_pgm p is the value to which the program p evaluates. *)
