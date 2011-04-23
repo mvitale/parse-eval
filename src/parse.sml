@@ -27,26 +27,28 @@ struct
     (* prec op = the precedence of operator op, i.e., an int such that
     * if op1 has greater precedence than op2, prec op1 > prec op2.
     *)
-    fun prec (T.Binop(Ast.AND) | T.Binop(Ast.OR)) = 2
+    fun prec (T.Lambda _) = 1 
+      | prec (T.Binop(Ast.AND) | T.Binop(Ast.OR)) = 2
       | prec (T.Binop(Ast.LT) | T.Binop(Ast.LE) | T.Binop(Ast.GT) |
               T.Binop(Ast.GE) | T.Binop(Ast.EQ) | T.Binop(Ast.NE)) = 3
       | prec (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB)) = 5
       | prec (T.Binop(Ast.TIMES) | T.Binop(Ast.DIV)) = 6
       | prec (T.Unop(Ast.NEG) | T.Unop(Ast.NOT)) = 8
-      | prec (T.If) = raise parse_error "Tried to check the precedence of T.If token"  
 
     (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
     fun assoc (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB) | T.Binop(Ast.TIMES) |
                T.Binop(Ast.DIV) | T.Binop(Ast.AND) | T.Binop(Ast.OR)) = LEFT
-      | assoc (T.Unop(Ast.NEG) | T.Unop(Ast.NOT)) = RIGHT
+      | assoc (T.Unop(Ast.NEG) | T.Unop(Ast.NOT) | T.Lambda _) = RIGHT
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
     *)
     fun force_op (e::es) ((T.Unop(opr))::ops) = 
-        (((Ast.UnOp(opr, e))::es), ops)
+          (((Ast.UnOp(opr, e))::es, ops))
       | force_op (right::left::es) ((T.Binop(opr))::ops) = 
-          ((Ast.BinOp(opr, left, right)::es), ops)
+          ((Ast.BinOp(opr, left, right))::es, ops)
+      | force_op (e::es) ((T.Lambda(id))::ops) =
+          ((Ast.Abs(id, e))::es, ops)
 
     (* force_ops op es ops = (es', ops') where es' and ops' are the new
     * expression and operation stacks resulting from forcing all operations
@@ -102,7 +104,7 @@ struct
         | T.Num(num) => parse_tokens lexer ((Ast.Number(num))::es) ops
         | T.True => parse_tokens lexer ((Ast.Boolean(true))::es) ops
         | T.False => parse_tokens lexer ((Ast.Boolean(false))::es) ops
-        | (T.Unop(_) | T.Binop(_)) => 
+        | (T.Unop(_) | T.Binop(_) | T.Lambda(_)) => 
           let
             val stacks = force_ops tok es ops
           in

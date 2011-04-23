@@ -136,7 +136,7 @@ struct
                  Ast.Ident("zed"))) ;
 
     do_test_ast("Abs0", "fn x => x;", Ast.Abs("x", Ast.Ident("x"))) ;
-
+*)
     do_test_ast("Abs1", "fn x => x + 3;", Ast.Abs("x",
     Ast.BinOp(Ast.PLUS, Ast.Ident("x"),
     Ast.Number(3)))) ;
@@ -144,12 +144,12 @@ struct
     do_test_ast("Abs2", "fn x => fn y => x + y;",
     Ast.Abs("x", Ast.Abs("y", Ast.BinOp(Ast.PLUS,
     Ast.Ident("x"), Ast.Ident("y"))))) ;
-
+(*
     do_test_ast("App 5", "(fn x => x) 3 + 4 ;",
       Ast.BinOp(Ast.PLUS,
                 Ast.App(Ast.Abs("x", Ast.Ident "x"), Ast.Number 3), 
                 Ast.Number 4)) ;
-    *)
+                *)
     true
   )
   val test_eval = fn () => (
