@@ -6,18 +6,19 @@ structure L1Cbv =
 struct
 
   (* The type of the value returned by the evaluation functions. *)
-  datatype value = Num of int | Boolean of bool
+  datatype value = Number of int | Boolean of bool | Abs of Ast.ident * Ast.expr
 
   (* eval_expr e is the value to which the expression e evaluates. *)
-  fun eval_expr (Ast.Number(num)) = Num num
+  fun eval_expr (Ast.Number(num)) = Number num
     | eval_expr (Ast.Boolean(b)) = Boolean b
+    | eval_expr (Ast.Abs(id, e)) = Abs (id, e)
     | eval_expr (Ast.UnOp(opr, e)) =
       let
         val e' = eval_expr e
       in
         case opr of
                Ast.NEG => 
-                (case e' of (Num num) => Num (~num))
+                (case e' of (Number num) => Number (~num))
              | Ast.NOT => 
                 (case e' of (Boolean boolean) => Boolean (not boolean))
                                
@@ -29,34 +30,34 @@ struct
       in
         case opr of
                Ast.SUB => 
-                (case e1' of (Num num1) => case e2' of (Num num2) => 
-                Num (num1 - num2))
+                (case e1' of (Number num1) => case e2' of (Number num2) => 
+                Number (num1 - num2))
              | Ast.PLUS => 
-                (case e1' of Num num1 => case e2' of Num num2 => 
-                Num (num1 + num2))
+                (case e1' of Number num1 => case e2' of Number num2 => 
+                Number (num1 + num2))
              | Ast.TIMES => 
-                (case e1' of Num num1 => case e2' of Num num2 => 
-                Num (num1 * num2))
+                (case e1' of Number num1 => case e2' of Number num2 => 
+                Number (num1 * num2))
              | Ast.DIV => 
-                (case e1' of Num num1 => case e2' of Num num2 => 
-                Num (num1 div num2))
+                (case e1' of Number num1 => case e2' of Number num2 => 
+                Number (num1 div num2))
              | Ast.LT =>
-                (case e1' of Num num1 => case e2' of Num num2 => 
+                (case e1' of Number num1 => case e2' of Number num2 => 
                 Boolean (num1 < num2))
              | Ast.LE =>
-                (case e1' of Num num1 => case e2' of Num num2 => 
+                (case e1' of Number num1 => case e2' of Number num2 => 
                 Boolean (num1 <= num2))
              | Ast.GT =>
-                (case e1' of Num num1 => case e2' of Num num2 => 
+                (case e1' of Number num1 => case e2' of Number num2 => 
                 Boolean (num1 > num2))
              | Ast.GE =>
-                (case e1' of Num num1 => case e2' of Num num2 => 
+                (case e1' of Number num1 => case e2' of Number num2 => 
                 Boolean (num1 >= num2))
              | Ast.EQ =>
-                (case e1' of Num num1 => case e2' of Num num2 => 
+                (case e1' of Number num1 => case e2' of Number num2 => 
                 Boolean (num1 = num2))
              | Ast.NE =>
-                (case e1' of Num num1 => case e2' of Num num2 => 
+                (case e1' of Number num1 => case e2' of Number num2 => 
                 Boolean (num1 <> num2))
              | Ast.AND =>
                 (case e1' of Boolean bool1 => case e2' of Boolean bool2 =>
@@ -78,9 +79,10 @@ struct
 
   (* eval_pgm p is the value to which the program p evaluates. *)
   (* UNIMPLEMENTED *)
-  fun eval_pgm p = Num 1
+  fun eval_pgm p = Number 1
 
   (* value2ast v is the AST corresponding to the value v. *)
   fun value2ast (Boolean boolean) = Ast.Boolean boolean
-    | value2ast (Num num) = Ast.Number num
+    | value2ast (Number num) = Ast.Number num
+    | value2ast (Abs (id, e)) = Ast.Abs(id, e)
 end

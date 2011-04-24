@@ -58,7 +58,7 @@ ws=[\n\ \t] ;
 ">="                            => (T.Binop(Ast.GE)) ;
 "="                             => (T.Binop(Ast.EQ)) ;
 "!="                            => (T.Binop(Ast.NE)) ;
-"fn"{ws}+{alpha}{ws}*"=>"       => (T.Lambda (trim yytext 2 2)) ;
+"fn"{ws}+{alpha}+{ws}*"=>"       => (T.Lambda (trim yytext 2 2)) ;
 "("                             => (T.LParen) ;
 ")"                             => (T.RParen) ;
 ";"                             => (T.EOS) ;

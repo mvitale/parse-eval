@@ -144,11 +144,15 @@ struct
     do_test_ast("Abs2", "fn x => fn y => x + y;",
     Ast.Abs("x", Ast.Abs("y", Ast.BinOp(Ast.PLUS,
     Ast.Ident("x"), Ast.Ident("y"))))) ;
+
+    do_test_ast("Abs3", "fn fred => fred ;",
+      Ast.Abs("fred", Ast.Ident("fred"))) ;
 (*
     do_test_ast("App 5", "(fn x => x) 3 + 4 ;",
       Ast.BinOp(Ast.PLUS,
                 Ast.App(Ast.Abs("x", Ast.Ident "x"), Ast.Number 3), 
                 Ast.Number 4)) ;
+
                 *)
     true
   )
@@ -186,9 +190,16 @@ struct
                            Ast.NilList)) ;
                     
     do_test_eval("Eval hd/tl 3", "hd tl (1 :: 2 :: []);", Ast.Number(2)) ;
-
+    *)
     do_test_eval("Eval abs 1", "fn x => x;", 
         Ast.Abs("x", Ast.Ident("x"))) ;
+
+    (*
+    do_test_eval("Eval abs 2", "fn fred => (fn bill => fred * bill);",
+        Ast.Abs("fred", Ast.Abs("bill", Ast.BinOp(Ast.TIMES, Ast.Ident("fred"),
+                                                  Ast.Ident("bill"))))) ;
+    *)
+    (*
     do_test_eval("Eval abs 3", "(fn x => fn y => x + y)(2);",
         Ast.Abs("y", Ast.BinOp(Ast.PLUS, Ast.Number(2), Ast.Ident("y")))) ;
 

@@ -27,7 +27,7 @@ struct
     (* prec op = the precedence of operator op, i.e., an int such that
     * if op1 has greater precedence than op2, prec op1 > prec op2.
     *)
-    fun prec (T.Lambda _) = 1 
+    fun prec (T.Lambda _) = 1
       | prec (T.Binop(Ast.AND) | T.Binop(Ast.OR)) = 2
       | prec (T.Binop(Ast.LT) | T.Binop(Ast.LE) | T.Binop(Ast.GT) |
               T.Binop(Ast.GE) | T.Binop(Ast.EQ) | T.Binop(Ast.NE)) = 3
@@ -37,7 +37,9 @@ struct
 
     (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
     fun assoc (T.Binop(Ast.PLUS) | T.Binop(Ast.SUB) | T.Binop(Ast.TIMES) |
-               T.Binop(Ast.DIV) | T.Binop(Ast.AND) | T.Binop(Ast.OR)) = LEFT
+               T.Binop(Ast.DIV) | T.Binop(Ast.AND) | T.Binop(Ast.OR) |
+               T.Binop(Ast.LT) | T.Binop(Ast.LE) | T.Binop(Ast.GT) |
+               T.Binop(Ast.GE) | T.Binop(Ast.EQ) | T.Binop(Ast.NE)) = LEFT
       | assoc (T.Unop(Ast.NEG) | T.Unop(Ast.NOT) | T.Lambda _) = RIGHT
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
@@ -63,7 +65,8 @@ struct
         let
           val p = prec opr
           val p' = prec opr'
-        in if p < p' orelse (p = p' andalso assoc opr = LEFT) then
+        in 
+          if p < p' orelse (p = p' andalso assoc opr = LEFT) then
             let
               val stacks = force_op es (opr'::ops)
             in
