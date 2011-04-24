@@ -70,14 +70,16 @@ struct
     (* collect_es ((Exp ek)::...::(Exp e1)::BGroup::es) =
     * ((Exp (Ast.App...(Ast.App(e1, e2), e3)..., ek))::BGroup::es)
     *)
-    fun collect_es ((Exp e2)::(Exp e1)::BGroup::es) = 
-          ((Exp(Ast.App(e1, e2)))::BGroup::es)
+    fun collect_es (BGroup::es) = BGroup::es
+      | collect_es (e::BGroup::es) = e::BGroup::es
+      | collect_es ((Exp e2)::(Exp e1)::BGroup::es) = 
+          (Exp(Ast.App(e1, e2)))::BGroup::es
       | collect_es ((Exp e)::es) =
         let
           val es' = collect_es es
         in
           case es' of
-               ((Exp app)::e') => ((Exp(Ast.App(app, e)))::e')
+               ((Exp app)::e') => (Exp(Ast.App(app, e)))::e'
         end
 
     (* force_ops op es ops = (es', ops') where es' and ops' are the new
@@ -90,7 +92,7 @@ struct
           val es' = collect_es es
         in
           case opr of
-               RParen => (case es' of (BGroup::e) => (e, ops))
+               RParen => (case es' of (app::BGroup::e) => (app::e, ops))
              | _ => (es', (LParen::ops))
         end
       | force_ops opr es (ILParen::ops) =
@@ -98,7 +100,8 @@ struct
           val es' = collect_es es
         in
           case es' of
-               (BGroup::e) => force_ops opr e ops
+               (app::BGroup::e) => force_ops opr (app::e) ops
+             | (BGroup::e) => force_ops opr e ops
         end
       | force_ops RParen es ops =
         let
@@ -169,13 +172,13 @@ struct
             case stacks of
                  (es', ops') => parse_tokens lexer es' ops'
           end
-        | T.If => parse_tokens lexer es (LParen::ops)
+        | T.If => parse_tokens lexer (BGroup::es) (LParen::ops)
         | (T.Then | T.Else) =>
           let
             val stacks = force_ops RParen es ops
           in
             case stacks of
-                 (es', ops') => parse_tokens lexer es' (LParen::ops')
+                 (es', ops') => parse_tokens lexer (BGroup::es') (LParen::ops')
           end
         | T.Endif =>
           let
@@ -194,7 +197,7 @@ struct
           end
     end
   in
-    parse_tokens lexer [] [LParen]
+    parse_tokens lexer [BGroup] [LParen]
   end
   
   (* parse_program lexer is the AST.pgm for the program defined by the tokens
