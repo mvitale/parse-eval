@@ -17,8 +17,13 @@ struct
   exception eval_error of string
 
   (* The empty environment function. *)
-  fun empty_env _ = raise eval_error 
+  fun empty_env _ = raise eval_error
     "Tried to evaluate the value of an identifier under the empty environemnt."
+
+  (* update_env env x v = env' where
+  *  env' y = v if y=x, env y o/w.
+  *)
+  fun update_env env x v = fn y => if y = x then v else env y
 
   (* eval_expr e is the value to which the expression e evaluates. *)
   fun eval_expr e =
@@ -101,6 +106,18 @@ struct
           case e1' of
                Closure(Boolean true, _) => eval e2 env
              | Closure(Boolean false, _) => eval e3 env
+        end
+      | eval (Ast.App(e1, e2)) env =
+        let
+          val e1' = eval e1 env
+          val e2' = eval e2 env
+        in
+          (case e1' of Closure(Abs(id, body), env1) =>
+           let
+             val new_env = update_env env1 id e2'
+           in
+             eval body new_env
+           end)
         end
   in
     eval e empty_env
