@@ -197,19 +197,24 @@ struct
     do_test_eval("Eval abs 1", "fn x => x;", 
         Ast.Abs("x", Ast.Ident("x"))) ;
 
-    (*
     do_test_eval("Eval abs 2", "fn fred => (fn bill => fred * bill);",
         Ast.Abs("fred", Ast.Abs("bill", Ast.BinOp(Ast.TIMES, Ast.Ident("fred"),
                                                   Ast.Ident("bill"))))) ;
-    *)
-    (*
+        
     do_test_eval("Eval abs 3", "(fn x => fn y => x + y)(2);",
         Ast.Abs("y", Ast.BinOp(Ast.PLUS, Ast.Number(2), Ast.Ident("y")))) ;
+
+    
+
+    do_test_eval("Eval app 1", "(fn x => x) 2;",
+      Ast.Number(2)) ;
+
+    do_test_eval("Eval app 2", "(fn x => fn y => x + y) 2 3;",
+      Ast.Number(5)) ;
 
     do_test_eval("Eval app 3", "(fn x => x)(fn y => y + y);",
         Ast.Abs("y", Ast.BinOp(Ast.PLUS, Ast.Ident("y"),
         Ast.Ident("y")))) ;
-    *)
     true
   )
 

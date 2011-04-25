@@ -6,7 +6,8 @@ structure L1Cbv =
 struct
 
   (* The type of a value expression. *)
-  datatype value_exp = Number of int | Boolean of bool | Abs of Ast.ident * Ast.expr
+  datatype value_exp = Number of int | Boolean of bool | 
+           Abs of Ast.ident * Ast.expr
 
   (* The type of the value returned by the evaluation functions. 
   *  SO FAR: A CLOSURE WHOSE EXPRESSION IS A VALUE EXPRESSION 
@@ -127,8 +128,44 @@ struct
   (* UNIMPLEMENTED *)
   fun eval_pgm p = Closure(Number 1, empty_env)
 
+
   (* value2ast v is the AST corresponding to the value v. *)
   fun value2ast (Closure(Boolean b, _)) = Ast.Boolean b
     | value2ast (Closure(Number num, _)) = Ast.Number num
-    | value2ast (Closure(Abs(id, e), _)) = Ast.Abs(id, e)
+    | value2ast (Closure(Abs(id, e), env)) = 
+      let
+        (* sub x = Ast.Ident(x) if x = id, value2ast (env x) o/w.
+        *          
+        *)
+        fun sub x = value2ast (env x)
+        
+        (* update_sub sub x = sub' where sub' y = Ast.Ident(x)
+        *  if x = y, sub x o/w.
+        *)
+        fun update_sub sub x =
+          fn y => if y = x then Ast.Ident(y) else sub y
+
+        (* apply_sub sub ast is the ast resulting from changing
+        * all leaves of the form Ast.Ident(x) that represent
+        * free variables to sub x.
+        *)
+        fun apply_sub sub (Ast.Ident(x)) = sub x
+          | apply_sub sub (Ast.Abs(id, body)) =
+            let
+              val sub' = update_sub sub id
+              val body' = apply_sub sub' body
+            in
+              Ast.Abs(id, body')
+            end
+          | apply_sub sub (Ast.UnOp(opr, e)) = 
+              Ast.UnOp(opr, apply_sub sub e)
+          | apply_sub sub (Ast.BinOp(opr, e1, e2)) =
+              Ast.BinOp(opr, apply_sub sub e1, apply_sub sub e2)
+          | apply_sub sub (Ast.Cond(e1, e2, e3)) =
+              Ast.Cond(apply_sub sub e1, apply_sub sub e2, apply_sub sub e3)
+          | apply_sub sub (Ast.App(e1, e2)) = Ast.App(apply_sub sub e1,
+                                                      apply_sub sub e2)
+      in
+        apply_sub sub (Ast.Abs(id, e))
+      end
 end
