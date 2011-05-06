@@ -2,9 +2,8 @@
  * CS 321
  * HW 9
  * 
- * An implementation of the PARSE signature.
+ * Implementation of the PARSE signature.
  *)
-
 structure L1Parse =
 struct
   
@@ -14,7 +13,7 @@ struct
   (* A shorter name for Tokens. *)
   structure T = Tokens
 
-  (* An 'enumerated type' to represent left and right operator associativity.
+  (* A type to represent left and right operator associativity.
   *)
   datatype lr = LEFT | RIGHT
 
@@ -39,23 +38,26 @@ struct
   fun parse_expression lexer =
   let
 
-    (* prec op = the precedence of operator op, i.e., an int such that
-    * if op1 has greater precedence than op2, prec op1 > prec op2.
+    (* prec op = an int such that if op1 has greater precedence than op2, 
+    *  prec op1 > prec op2.
     *)
     fun prec (Lambda _) = 1
       | prec (Binop(Ast.AND) | Binop(Ast.OR)) = 2
       | prec (Binop(Ast.LT) | Binop(Ast.LE) | Binop(Ast.GT) |
               Binop(Ast.GE) | Binop(Ast.EQ) | Binop(Ast.NE)) = 3
+      | prec (Binop(Ast.CONS)) = 4
       | prec (Binop(Ast.PLUS) | Binop(Ast.SUB)) = 5
       | prec (Binop(Ast.TIMES) | Binop(Ast.DIV)) = 6
-      | prec (Unop(Ast.NEG) | Unop(Ast.NOT)) = 8
+      | prec (Unop(Ast.NEG) | Unop(Ast.NOT) | Unop(Ast.HEAD) | 
+              Unop(Ast.TAIL)) = 7
 
     (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
     fun assoc (Binop(Ast.PLUS) | Binop(Ast.SUB) | Binop(Ast.TIMES) |
                Binop(Ast.DIV) | Binop(Ast.AND) | Binop(Ast.OR) |
                Binop(Ast.LT) | Binop(Ast.LE) | Binop(Ast.GT) |
                Binop(Ast.GE) | Binop(Ast.EQ) | Binop(Ast.NE)) = LEFT
-      | assoc (Unop(Ast.NEG) | Unop(Ast.NOT) | Lambda _) = RIGHT
+      | assoc (Unop(Ast.NEG) | Unop(Ast.NOT) | Lambda _ | Binop(Ast.CONS) | 
+               Unop(Ast.HEAD) | Unop(Ast.TAIL)) = RIGHT
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
@@ -82,9 +84,33 @@ struct
                ((Exp app)::e') => (Exp(Ast.App(app, e)))::e'
         end
 
-    (* force_ops op es ops = (es', ops') where es' and ops' are the new
-    * expression and operation stacks resulting from forcing all operations
-    * on ops of lesser or equal precedence than op.
+    (* force_ops opr es ops = (es', ops') where es' and ops' are the new
+    * expression and operation stacks resulting from forcing operations
+    * and collecting expressions according to the specification in parsing.pdf.
+    *
+    * In greater detail:
+    * (1) If opr represents an operator:
+    *   (a) Force pending operations.
+    *   (b) Push opr onto ops.
+    *   (c) Push BGroup and ILParen onto es and ops respectively.
+    *
+    * (2) If opr is a non-RParen operator and LParen is on top of es:
+    *   (a) Collect expressions to transform the stacks 
+    *       eK :: ... :: e1 :: BGroup :: es and
+    *       LParen :: ops to (...((e1 e2)e3)...eK) :: BGroup :: es and
+    *       LParen :: ops.
+    * If we are forcing because of an RParen, delete the BGroup and LParen
+    * tokens.
+    *
+    * (3) If opr is a non-RParen operator and ILParen is on top of es:
+    *   (a) Collect expressions to transform stacks 
+    *       eK :: ... :: e1 :: BGroup :: es and ILParen :: ops to
+    *       (...((e1 e2)e3)...eK) :: es and ops.
+    *   (b) Continue forcing pending operations.
+    *
+    * (4) If opr is not RParen and any other operator is on top of ops,
+    *     use precedence and associativity. If opr is RParen, force 
+    *     unconditionally.
     *)
     fun force_ops _ es [] = (es, [])
       | force_ops opr es (LParen::ops) = 
@@ -116,12 +142,8 @@ struct
           val p' = prec opr'
         in 
           if p < p' orelse (p = p' andalso assoc opr = LEFT) then
-            let
-              val stacks = force_op es (opr'::ops)
-            in
-              case stacks of
-                (es', ops') => force_ops opr es' ops'
-            end
+            case force_op es (opr'::ops) of
+              (es', ops') => force_ops opr es' ops'
           else
             (es, (opr'::ops))
         end
@@ -141,60 +163,32 @@ struct
         | T.True => parse_tokens lexer ((Exp(Ast.Boolean(true)))::es) ops
         | T.False => parse_tokens lexer ((Exp(Ast.Boolean(false)))::es) ops
         | T.Unop(opr) =>
-          let
-            val stacks = force_ops (Unop opr) es ops
-          in
-            case stacks of
-                 (es', ops') => parse_tokens lexer (BGroup::es')
-                                (ILParen::(Unop(opr))::ops')
-          end
+          (case force_ops (Unop opr) es ops of
+            (es', ops') => parse_tokens lexer (BGroup::es')
+                           (ILParen::(Unop(opr))::ops'))
         | T.Binop(opr) =>
-          let
-            val stacks = force_ops (Binop opr) es ops
-          in
-            case stacks of
-                 (es', ops') => parse_tokens lexer (BGroup::es')
-                                (ILParen::(Binop(opr))::ops')
-          end
+          (case force_ops (Binop opr) es ops of
+            (es', ops') => parse_tokens lexer (BGroup::es')
+                           (ILParen::(Binop(opr))::ops'))
         | T.Lambda(id) =>
-          let
-            val stacks = force_ops (Lambda id) es ops
-          in
-            case stacks of
-                 (es', ops') => parse_tokens lexer (BGroup::es')
-                                (ILParen::(Lambda id)::ops')
-          end
+          (case force_ops (Lambda id) es ops of
+            (es', ops') => parse_tokens lexer (BGroup::es') 
+                           (ILParen::(Lambda id)::ops'))
         | T.LParen => parse_tokens lexer (BGroup::es) (LParen::ops)
         | T.RParen => 
-          let
-            val stacks = force_ops RParen es ops
-          in
-            case stacks of
-                 (es', ops') => parse_tokens lexer es' ops'
-          end
+          (case force_ops RParen es ops of
+            (es', ops') => parse_tokens lexer es' ops')
         | T.If => parse_tokens lexer (BGroup::es) (LParen::ops)
         | (T.Then | T.Else) =>
-          let
-            val stacks = force_ops RParen es ops
-          in
-            case stacks of
-                 (es', ops') => parse_tokens lexer (BGroup::es') (LParen::ops')
-          end
+          (case force_ops RParen es ops of
+            (es', ops') => parse_tokens lexer (BGroup::es') (LParen::ops'))
         | T.Endif =>
-          let
-            val stacks = force_ops RParen es ops
-          in
-            case stacks of
-                 ((Exp e3)::(Exp e2)::(Exp e1)::es', ops') =>
-                  parse_tokens lexer ((Exp(Ast.Cond(e1, e2, e3)))::es') ops'
-          end
+          (case force_ops RParen es ops of
+            ((Exp e3)::(Exp e2)::(Exp e1)::es', ops') =>
+              parse_tokens lexer ((Exp(Ast.Cond(e1, e2, e3)))::es') ops')
         | T.EOS => 
-          let
-            val e = hd (#1 (force_ops RParen es ops))
-          in
-            case e of
-                 Exp(ast) => ast
-          end
+          (case hd (#1 (force_ops RParen es ops)) of
+            Exp(ast) => ast)
     end
   in
     parse_tokens lexer [BGroup] [LParen]
@@ -207,7 +201,7 @@ struct
   let
     (* parse_partial_program lexer stmts is the AST.pgm for the program
     * yielded by lexer up to the Tokens.EOF token along with the 
-    * Ast.stmt's contained in stmts.
+    * Ast.stmt's contained in stmts, a list of Ast.stmt.
     *)
     fun parse_partial_program lexer stmts =
     let
