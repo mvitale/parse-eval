@@ -50,6 +50,8 @@ struct
       | prec (Binop(Ast.TIMES) | Binop(Ast.DIV)) = 6
       | prec (Unop(Ast.NEG) | Unop(Ast.NOT) | Unop(Ast.HEAD) | 
               Unop(Ast.TAIL)) = 7
+      | prec _ = raise parse_error
+          "Tried to check the precedence of an invalid operator."
 
     (* assoc op = LEFT if op is left-associative, RIGHT o/w. *)
     fun assoc (Binop(Ast.PLUS) | Binop(Ast.SUB) | Binop(Ast.TIMES) |
@@ -58,6 +60,8 @@ struct
                Binop(Ast.GE) | Binop(Ast.EQ) | Binop(Ast.NE)) = LEFT
       | assoc (Unop(Ast.NEG) | Unop(Ast.NOT) | Lambda _ | Binop(Ast.CONS) | 
                Unop(Ast.HEAD) | Unop(Ast.TAIL)) = RIGHT
+      | assoc _ = raise parse_error 
+          "Tried to check the associativity of an invalid operator."
 
     (* force_op es ops = (es', ops') where es' and ops' are the new expression
     * and operation stacks resulting from forcing the top operation of ops.
@@ -68,6 +72,8 @@ struct
           ((Exp(Ast.BinOp(opr, left, right)))::es, ops)
       | force_op ((Exp e)::es) ((Lambda(id))::ops) =
           ((Exp(Ast.Abs(id, e)))::es, ops)
+      | force_op _ _ = 
+          raise parse_error "Error occurred while forcing operations."
 
     (* collect_es ((Exp ek)::...::(Exp e1)::BGroup::es) =
     * ((Exp (Ast.App...(Ast.App(e1, e2), e3)..., ek))::BGroup::es)
@@ -82,7 +88,9 @@ struct
         in
           case es' of
                ((Exp app)::e') => (Exp(Ast.App(app, e)))::e'
+             | _ => raise parse_error "Failure to collect applications."
         end
+      | collect_es _ = raise parse_error "Failure to collect applications."
 
     (* force_ops opr es ops = (es', ops') where es' and ops' are the new
     * expression and operation stacks resulting from forcing operations
@@ -118,7 +126,9 @@ struct
           val es' = collect_es es
         in
           case opr of
-               RParen => (case es' of (app::BGroup::e) => (app::e, ops))
+               RParen => (case es' of (app::BGroup::e) => (app::e, ops)
+                                    | _ => raise parse_error
+                                           "Collecting apps failed.")
              | _ => (es', (LParen::ops))
         end
       | force_ops opr es (ILParen::ops) =
@@ -128,6 +138,7 @@ struct
           case es' of
                (app::BGroup::e) => force_ops opr (app::e) ops
              | (BGroup::e) => force_ops opr e ops
+             | _ => raise parse_error "Failure to collect applications."
         end
       | force_ops RParen es ops =
         let
@@ -186,10 +197,15 @@ struct
         | T.Endif =>
           (case force_ops RParen es ops of
             ((Exp e3)::(Exp e2)::(Exp e1)::es', ops') =>
-              parse_tokens lexer ((Exp(Ast.Cond(e1, e2, e3)))::es') ops')
+              parse_tokens lexer ((Exp(Ast.Cond(e1, e2, e3)))::es') ops'
+           | _ => raise parse_error "Error parsing conditional.")
         | T.EOS => 
-          (case hd (#1 (force_ops RParen es ops)) of
-            Exp(ast) => ast)
+          (case force_ops RParen es ops of
+            (es', ops') =>
+            (case es' of (Exp(ast)::[]) => ast
+              | _ => raise parse_error "Error parsing string."))
+        | _ => 
+          raise parse_error "Invalid token encountered when parsing string."
     end
   in
     parse_tokens lexer [BGroup] [LParen]
@@ -217,6 +233,7 @@ struct
             parse_partial_program lexer (s::stmts)
           end
         | T.EOF => Ast.Program(stmts)
+        | _ => raise parse_error "Invalid program."
     end
   in
     parse_partial_program lexer []

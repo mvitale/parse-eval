@@ -7,7 +7,7 @@ struct
 
   (* The type of a value expression. *)
   datatype value_exp = Number of int | Boolean of bool | NilList |
-           Abs of Ast.ident * Ast.expr
+                       Abs of Ast.ident * Ast.expr
 
   (* The type of the value returned by the evaluation functions. 
   *)
@@ -41,16 +41,22 @@ struct
           case opr of
                Ast.NEG =>
                  (case e' of Closure(Number num, env') => 
-                   Closure(Number(~num), env'))
+                    Closure(Number(~num), env')
+                  | _ =>
+                    raise eval_error "Invalid argument to numerical operator.")
              | Ast.NOT =>
                  (case e' of Closure(Boolean b, env') =>
-                  Closure(Boolean(not b), env'))
+                    Closure(Boolean(not b), env')
+                  | _ =>
+                      raise eval_error "Invalid argument to boolean operator.")
              | Ast.HEAD =>
-                 (case e' of Cons(head, tail) =>
-                  head)
+                 (case e' of Cons(head, tail) => head
+                  | _ =>
+                      raise eval_error "Invalid argument to list operator.")
              | Ast.TAIL =>
-                 (case e' of Cons(head, tail) =>
-                  tail)
+                 (case e' of Cons(head, tail) => tail
+                  | _ =>
+                      raise eval_error "Invalid argument to list operator.")
         end
       | eval (Ast.BinOp(opr, e1, e2)) env =
         let
@@ -58,57 +64,37 @@ struct
           val e2' = eval e2 env
         in
           case opr of
-               Ast.SUB =>
-                (case e1' of Closure(Number num1, _) => 
-                 case e2' of Closure(Number num2, _) =>
-                 Closure(Number(num1 - num2), empty_env))
-             | Ast.PLUS =>
-                (case e1' of Closure(Number num1, _) => 
-                 case e2' of Closure(Number num2, _) =>
-                 Closure(Number(num1 + num2), empty_env))
-             | Ast.TIMES =>
-                (case e1' of Closure(Number num1, _) => 
-                 case e2' of Closure(Number num2, _) =>
-                 Closure(Number(num1 * num2), empty_env))
-             | Ast.DIV =>
-                (case e1' of Closure(Number num1, _) => 
-                 case e2' of Closure(Number num2, _) =>
-                 Closure(Number(num1 div num2), empty_env))
-             | Ast.LT =>
-                 (case e1' of Closure(Number num1, _) =>
-                  case e2' of Closure(Number num2, _) =>
-                  Closure(Boolean(num1 < num2), empty_env))
-             | Ast.LE =>
-                 (case e1' of Closure(Number num1, _) =>
-                  case e2' of Closure(Number num2, _) =>
-                  Closure(Boolean(num1 <= num2), empty_env))
-             | Ast.GT =>
-                 (case e1' of Closure(Number num1, _) =>
-                  case e2' of Closure(Number num2, _) =>
-                  Closure(Boolean(num1 > num2), empty_env))
-             | Ast.GE =>
-                 (case e1' of Closure(Number num1, _) =>
-                  case e2' of Closure(Number num2, _) =>
-                  Closure(Boolean(num1 >= num2), empty_env))
-             | Ast.EQ =>
-                 (case e1' of Closure(Number num1, _) =>
-                  case e2' of Closure(Number num2, _) =>
-                  Closure(Boolean(num1 = num2), empty_env))
-             | Ast.NE =>
-                 (case e1' of Closure(Number num1, _) =>
-                  case e2' of Closure(Number num2, _) =>
-                  Closure(Boolean(num1 <> num2), empty_env))
-             | Ast.AND =>
-                (case e1' of Closure(Boolean b1, _) => 
-                 case e2' of Closure(Boolean b2, _) =>
-                 Closure(Boolean(b1 andalso b2), empty_env))
-             | Ast.OR =>
-                (case e1' of Closure(Boolean b1, _) => 
-                 case e2' of Closure(Boolean b2, _) =>
-                 Closure(Boolean(b1 orelse b2), empty_env))
-             | Ast.CONS =>
-                 Cons(e1', e2')
-
+          (Ast.SUB | Ast.PLUS | Ast.TIMES | Ast.DIV | Ast.LT | Ast.LE |
+           Ast.GT | Ast.GE | Ast.EQ | Ast.NE) =>
+            (case e1' of Closure(Number num1, _) =>
+              (case e2' of Closure(Number num2, _) =>
+                (case opr of
+                      Ast.SUB => Closure(Number(num1 - num2), empty_env)
+                    | Ast.PLUS => Closure(Number(num1 + num2), empty_env)
+                    | Ast.TIMES => Closure(Number(num1 * num2), empty_env)
+                    | Ast.DIV => Closure(Number(num1 div num2), empty_env)
+                    | Ast.LT => Closure(Boolean(num1 < num2), empty_env)
+                    | Ast.LE => Closure(Boolean(num1 <= num2), empty_env)
+                    | Ast.GT => Closure(Boolean(num1 > num2), empty_env)
+                    | Ast.GE => Closure(Boolean(num1 >= num2), empty_env)
+                    | Ast.EQ => Closure(Boolean(num1 = num2), empty_env)
+                    | Ast.NE => Closure(Boolean(num1 <> num2), empty_env)
+                )
+              | _ => raise eval_error 
+                      "Invalid argument to numerical operator.")
+            | _ => raise eval_error "Invalid argument to numerical operator.")
+          | (Ast.AND | Ast.OR) =>
+              (case e1' of Closure(Boolean b1, _) =>
+                (case e2' of Closure(Boolean b2, _) =>
+                  (case opr of
+                        Ast.AND => Closure(Boolean(b1 andalso b2), empty_env)
+                      | Ast.OR => Closure(Boolean(b1 orelse b2), empty_env)
+                  )
+                | _ => raise eval_error
+                    "Invalid arguemnt to boolean operator.")
+              | _ => raise eval_error
+                    "Invalid argument to boolean operator.")
+          | Ast.CONS => Cons(e1', e2')
         end
       | eval (Ast.Cond(e1, e2, e3)) env =
         let
@@ -117,6 +103,8 @@ struct
           case e1' of
                Closure(Boolean true, _) => eval e2 env
              | Closure(Boolean false, _) => eval e3 env
+             | _ => raise eval_error 
+                    "Conditional has non-boolean condition."
         end
       | eval (Ast.App(e1, e2)) env =
         let
@@ -124,11 +112,13 @@ struct
           val e2' = eval e2 env
         in
           (case e1' of Closure(Abs(id, body), env1) =>
-           let
-             val new_env = update_env env1 id e2'
-           in
-             eval body new_env
-           end)
+             let
+               val new_env = update_env env1 id e2'
+             in
+               eval body new_env
+             end
+           | _ => raise eval_error
+                  "Cannot apply non-function to argument.")
         end
   in
     eval e empty_env
