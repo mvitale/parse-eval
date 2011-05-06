@@ -16,7 +16,16 @@ struct
   in
     if exp = act then (print "passed.\n" ; true)
     else (record_fail (fail_msg(test_name, to_str(exp), to_str(act))) ;
-                                print "failed.\n" ; true)
+                                print "FAILED.\n" ; true)
+  end
+
+  fun do_test_eq(test_name, test, exp, eq_test, to_str) =
+  let
+    val act = (print (test_name ^ "...") ; test())
+  in
+    if eq_test act exp then (print "passed.\n" ; true)
+    else (record_fail (fail_msg(test_name, to_str(exp), to_str(act))) ;
+                                print "FAILED.\n" ; true)
   end
 
   fun assert_bool exp (test_name, test) =
