@@ -6,13 +6,13 @@ structure L1Cbv =
 struct
 
   (* The type of a value expression. *)
-  datatype value_exp = Number of int | Boolean of bool | 
+  datatype value_exp = Number of int | Boolean of bool | NilList |
            Abs of Ast.ident * Ast.expr
 
   (* The type of the value returned by the evaluation functions. 
-  *  SO FAR: A CLOSURE WHOSE EXPRESSION IS A VALUE EXPRESSION 
   *)
-  datatype value = Closure of value_exp * (Ast.ident -> value)
+  datatype value = Closure of value_exp * (Ast.ident -> value) |
+                   Cons of value * value
 
   (* Raised when some errors occur during evaluation. *)
   exception eval_error of string
@@ -33,6 +33,7 @@ struct
       | eval (Ast.Boolean(b)) _ = Closure(Boolean b, empty_env)
       | eval (Ast.Ident(id)) env = env id
       | eval (Ast.Abs(id, e)) env = Closure(Abs(id, e), env)
+      | eval Ast.NilList _ = Closure(NilList, empty_env)
       | eval (Ast.UnOp(opr, e)) env =
         let
           val e' = eval e env
@@ -44,6 +45,12 @@ struct
              | Ast.NOT =>
                  (case e' of Closure(Boolean b, env') =>
                   Closure(Boolean(not b), env'))
+             | Ast.HEAD =>
+                 (case e' of Cons(head, tail) =>
+                  head)
+             | Ast.TAIL =>
+                 (case e' of Cons(head, tail) =>
+                  tail)
         end
       | eval (Ast.BinOp(opr, e1, e2)) env =
         let
@@ -99,6 +106,9 @@ struct
                 (case e1' of Closure(Boolean b1, _) => 
                  case e2' of Closure(Boolean b2, _) =>
                  Closure(Boolean(b1 orelse b2), empty_env))
+             | Ast.CONS =>
+                 Cons(e1', e2')
+
         end
       | eval (Ast.Cond(e1, e2, e3)) env =
         let
@@ -132,6 +142,9 @@ struct
   (* value2ast v is the AST corresponding to the value v. *)
   fun value2ast (Closure(Boolean b, _)) = Ast.Boolean b
     | value2ast (Closure(Number num, _)) = Ast.Number num
+    | value2ast (Closure(NilList, _)) = Ast.NilList
+    | value2ast (Cons(e1, e2)) = 
+      Ast.BinOp(Ast.CONS, value2ast e1, value2ast e2)
     | value2ast (Closure(Abs(id, e), env)) = 
       let
         (* sub x = Ast.Ident(x) if x = id, value2ast (env x) o/w.

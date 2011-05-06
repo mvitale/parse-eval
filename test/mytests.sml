@@ -84,7 +84,6 @@ struct
     do_test_ast("Cond3", "if 3 = 2 then x else y fi;",
       Ast.Cond(Ast.BinOp(Ast.EQ, Ast.Number(3), Ast.Number(2)), Ast.Ident("x"),
                Ast.Ident("y"))) ;
-    (*
     do_test_ast("List 1", "[];", Ast.NilList) ;
     do_test_ast("List 2", "2 :: 3 :: [];",
       Ast.BinOp(Ast.CONS, Ast.Number 2,
@@ -102,8 +101,6 @@ struct
                                                   Ast.Ident "y"))),
                         Ast.Number 2),
                 Ast.NilList)) ;
-    *)
-
     do_test_ast("Arith .9", "3 + 5;", 
         Ast.BinOp(Ast.PLUS, Ast.Number(3), Ast.Number(5))) ;
 
@@ -179,7 +176,6 @@ struct
     do_test_eval("Eval cond. 2", "if false then 0 else 1 fi;", Ast.Number(1)) ;
     do_test_eval("Eval cond. 3", "if 3 <= 5 then 0 else 1 fi;", Ast.Number(0)) ;
 
-    (*
     do_test_eval("Eval list 1", "[];", Ast.NilList) ;
     do_test_eval("Eval list 2", "1 :: [];", 
         Ast.BinOp(Ast.CONS, Ast.Number(1), Ast.NilList)) ;
@@ -193,7 +189,7 @@ struct
                            Ast.NilList)) ;
                     
     do_test_eval("Eval hd/tl 3", "hd tl (1 :: 2 :: []);", Ast.Number(2)) ;
-    *)
+
     do_test_eval("Eval abs 1", "fn x => x;", 
         Ast.Abs("x", Ast.Ident("x"))) ;
 

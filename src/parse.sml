@@ -162,6 +162,7 @@ struct
         | T.Num(num) => parse_tokens lexer ((Exp(Ast.Number(num)))::es) ops
         | T.True => parse_tokens lexer ((Exp(Ast.Boolean(true)))::es) ops
         | T.False => parse_tokens lexer ((Exp(Ast.Boolean(false)))::es) ops
+        | T.Nil => parse_tokens lexer ((Exp(Ast.NilList))::es) ops
         | T.Unop(opr) =>
           (case force_ops (Unop opr) es ops of
             (es', ops') => parse_tokens lexer (BGroup::es')
