@@ -125,8 +125,24 @@ struct
   end
 
   (* eval_pgm p is the value to which the program p evaluates. *)
-  (* UNIMPLEMENTED *)
-  fun eval_pgm p = Closure(Number 1, empty_env)
+  fun eval_pgm p =
+  let
+    (* make_ast p is the AST equivalent to treating each assignment in p
+    * but the last as a desugared let-expression, the body of which is the
+    * (recursively processed) remaining statements, and replacing the last
+    * assignment with its right-hand side, then parsing the new expression.
+    *)
+    fun make_ast (Ast.Program((Ast.Assign(x, e))::[])) = e
+      | make_ast (Ast.Program((Ast.Assign(x, e))::xs)) =
+        let
+          val ast = make_ast (Ast.Program xs)
+        in
+          Ast.App(Ast.Abs(x, ast), e)
+        end
+      | make_ast _ = raise eval_error "Cannot evaluate empty program."
+  in
+    eval_expr (make_ast p)
+  end
 
 
   (* value2ast v is the AST corresponding to the value v. *)

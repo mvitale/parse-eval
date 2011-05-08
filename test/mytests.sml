@@ -217,6 +217,7 @@ struct
   fun test_eval_file() = 
   let
     val files_results = [
+        ("t1.l1", Ast.Number 2),
         ("t3.l1", Ast.Number 8)
     ]
     fun test_files [] = true
@@ -229,7 +230,7 @@ struct
 
   fun run_tests(arg0 : string, args : string list) = 
     BackTrace.monitor(fn () =>
-      (U.run_tests(fn () => (test_ast(); test_eval())) ; 0)
+      (U.run_tests(fn () => (test_ast(); test_eval(); test_eval_file())) ; 0)
     )
 
 end

@@ -230,7 +230,7 @@ struct
             val e = parse_expression lexer
             val s = Ast.Assign(id, e)
           in
-            parse_partial_program lexer (s::stmts)
+            parse_partial_program lexer (stmts@[s])
           end
         | T.EOF => Ast.Program(stmts)
         | _ => raise parse_error "Invalid program."
