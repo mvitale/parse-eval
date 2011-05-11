@@ -2,12 +2,18 @@ structure Typing =
 struct
 
   (* Raised by infer if the expression cannot be typed. *)
-  exception infer_error of string
+  exception infer_error
 
   (* Raised when an environment is applied to an identifier not in its 
   * domain.
   *)
   exception env_error
+
+  (* Raised by label_ast if the expression cannot be labeled. *)
+  exception label_error
+
+  (* Raised by unify if the equations cannot be unified. *)
+  exception unify_error
 
   type ident = string
 
@@ -58,10 +64,22 @@ struct
   *)
   fun label_ast e =
   let
+    (*label_ast' e env fresh false is the l_expr corresponding to labeling
+    * e with generic types. All identifiers with bindings under env will be
+    * given their type under env; all new vars will be >= fresh.
+    *
+    * label_ast' e env fresh true is the l_expr corresponding to labeling
+    * e with generic types. Identifiers are given their types under env; 
+    * if a new (unbound) identifier is encountered, a infer_error will be
+    * raised. 
+    *
+    * We use this boolean flag to remember whether or not we're labeling the
+    * body of an abstraction.
+    *)
     fun label_ast' (Ast.Ident(x)) env fresh abs =
         let
           val tx = env_get(env, x) handle env_error =>
-          if abs then raise infer_error "Unbound identifier." else fresh
+          if abs then raise label_error else fresh
         in
           (Ident(x, V tx), env_update(env, x, tx), 
            if tx = fresh then fresh+1 else fresh)
@@ -155,7 +173,7 @@ struct
                | (Ast.AND | Ast.OR) =>
                  (Eq(a, Bool))::(Eq(b, Bool))::(Eq(c, Bool))::accum
                | Ast.CONS =>
-                 (Eq(a, c))::(Eq(a, List b))::accum (* a is already a list type *)
+                 (Eq(a, c))::(Eq(a, List b))::accum
           val accum'' = gen_const' e1 accum'
         in
           gen_const' e2 accum''
@@ -198,6 +216,7 @@ struct
     | occurs a (Arrow(t1, t2)) = occurs a t1 orelse occurs a t2
     | occurs a (List b) = occurs a b
 
+  (* occurs_eq a eqn is true if var a occurs in t_eq eqn, false o/w. *)
   fun occurs_eq a (Eq(t1, t2)) =
       occurs a t1 orelse occurs a t2
 
@@ -215,8 +234,8 @@ struct
     | sub a b (List c) = List(sub a b c)
     | sub a b (Arrow(t1, t2)) = Arrow(sub a b t1, sub a b t2)
 
-  (* sub_eq a b (Eq(t1, t2)) is (Eq(t1', t2') where t1' and t2' are sub a b t1 and
-  * sub a b t2.
+  (* sub_eq a b (Eq(t1, t2)) is (Eq(t1', t2') where t1' and t2' are sub 
+  * a b t1 and sub a b t2.
   *)
   fun sub_eq a b (Eq(t1, t2)) =
   let
@@ -237,22 +256,21 @@ struct
         eq'::(sub_eqns a b eqns)
       end
 
-  (* unify a eqns is the value of a under an mgu of eqns. If eqns cannot be
-  * unified, raises infer_error.
+  (* unify eqns is a list of equations [a0 = t0, a1 = t1, ..., ak = tk] 
+  * where each equation is of the form (Eq(V a, b)) and for 0 <= i <= k,
+  * [t0/a0]...[t(i-2)/a(i-2)][t(i-1)/a(i-1)]ai = ti is an equation in a
+  * solved form of eqns with the same mgu as eqns.
+  *
+  * We delay these substitutions instead of applying them as we go, because
+  * in the end we only need the value of the type a of the root node under our
+  * mgu; once we have this list of equations, we just find the j for which
+  * a = aj or tj, and then apply the above substitution.
   *)
-  fun unify a eqns =
+  fun unify eqns =
   let 
-    fun get_type a [] = V a
-      | get_type a ((Eq(V t1, t2))::eqs) =
-        if a = t1 then t2
-        else if (V a) = t2 then V t1
-        else
-          let
-            val so_far = get_type a eqs
-          in
-            sub t1 t2 so_far
-          end
-
+    (* unify' eqns accum is the list of equations from the specification
+    * of unify appended to accum.
+    *)
     fun unify' [] accum =  accum
       | unify' ((Eq(Int, Int))::eqs) accum = unify' eqs accum
       | unify' ((Eq(Bool, Bool))::eqs) accum = unify' eqs accum
@@ -262,33 +280,51 @@ struct
         unify' ((Eq(a, b))::eqs) accum
       | unify' ((Eq(V a, b))::eqs) accum =
         if V a = b then unify' eqs accum
-        else if occurs a b then raise infer_error "Equations cannot be unified."
+        else if occurs a b then raise unify_error
         else if occurs_any a eqs then unify' (sub_eqns a b eqs) 
                 ((Eq(V a, b))::accum)
         else unify' eqs ((Eq(V a, b))::accum)
 
       | unify' ((Eq(a, V b))::eqs) accum =
         unify' ((Eq(V b, a))::eqs) accum
-      | unify' _ _ = raise infer_error "Equations cannot be unified."
-
-    val result = unify' eqns []
+      | unify' _ _ = raise unify_error
   in
-    get_type a result
-  end  
+    unify' eqns []
+  end
 
-
+  (* Given a list of equations eqns = [a1 = t1, a2 = t2, ..., ak = tk]
+  * of the form returned by unify, and a var a, 
+  *
+  * get_type_mgu a eqns is the value of (V a) when the unifier represented by
+  * eqns is applied.
+  *)
+  fun get_type_mgu a [] = V a
+    | get_type_mgu a ((Eq(V t1, t2))::eqs) =
+      if a = t1 then t2
+      else if (V a) = t2 then V t1
+      else
+        let
+          val so_far = get_type_mgu a eqs
+        in
+          sub t1 t2 so_far
+        end
+ 
   (* infer e => the most general type of e, inferred using Hindley-Milner.
   *  Raises infer_error if no type can be inferred for e.
   *)
   fun infer e =
   let
-    val e' = label_ast e
+    val e' = label_ast e handle label_error => raise infer_error
     val t = get_type e'
     val c = gen_const e'
+    val u = unify c handle unify_error => raise infer_error
   in
     case t of 
-         List(V a) => List(unify a c)
-       | V a => unify a c
+         List(V a) => List(get_type_mgu a u)
+       | V a => get_type_mgu a u
+       | _ => raise infer_error (* This case should never be reached, because
+                                   we only label our ast's with generic types.
+                                   *)
   end    
   
   (* toString s => a fully-parenthesized string representation of the

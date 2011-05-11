@@ -10,7 +10,6 @@ struct
   (* Raised when an error occurs during parsing. *)
   exception parse_error of string
 
-  (* A shorter name for Tokens. *)
   structure T = Tokens
 
   (* A type to represent left and right operator associativity.
@@ -20,7 +19,7 @@ struct
   (* The type of the elements of the operation stack. Defining a new type
   * altogether makes for cleaner code than creating a disjoint sum of Tokens.t 
   * and ILParen. In addition, many of the tokens should never be pushed onto
-  * the operation stack; using a separate datatype enforces this.
+  * the operation stack; using a distinct datatype enforces this.
   *)
   datatype o = Unop of Ast.unop | Binop of Ast.binop | Lambda of T.ident |
                RParen | LParen | ILParen 
@@ -142,10 +141,9 @@ struct
         end
       | force_ops RParen es ops =
         let
-          val stacks = force_op es ops
+          val (es', ops') = force_op es ops
         in
-          case stacks of
-               (es', ops') => force_ops RParen es' ops'
+          force_ops RParen es' ops'
         end
       | force_ops opr es (opr'::ops) =
         let
@@ -153,8 +151,11 @@ struct
           val p' = prec opr'
         in 
           if p < p' orelse (p = p' andalso assoc opr = LEFT) then
-            case force_op es (opr'::ops) of
-              (es', ops') => force_ops opr es' ops'
+            let
+              val (es', ops') = force_op es (opr'::ops)
+            in
+              force_ops opr es' ops'
+            end
           else
             (es, (opr'::ops))
         end
@@ -175,35 +176,49 @@ struct
         | T.False => parse_tokens lexer ((Exp(Ast.Boolean(false)))::es) ops
         | T.Nil => parse_tokens lexer ((Exp(Ast.NilList))::es) ops
         | T.Unop(opr) =>
-          (case force_ops (Unop opr) es ops of
-            (es', ops') => parse_tokens lexer (BGroup::es')
-                           (ILParen::(Unop(opr))::ops'))
+          let
+            val (es', ops') = force_ops (Unop opr) es ops
+          in
+            parse_tokens lexer (BGroup::es') (ILParen::(Unop(opr))::ops')
+          end
         | T.Binop(opr) =>
-          (case force_ops (Binop opr) es ops of
-            (es', ops') => parse_tokens lexer (BGroup::es')
-                           (ILParen::(Binop(opr))::ops'))
+          let
+            val (es', ops') = force_ops (Binop opr) es ops
+          in
+            parse_tokens lexer (BGroup::es') (ILParen::(Binop(opr))::ops')
+          end
         | T.Lambda(id) =>
-          (case force_ops (Lambda id) es ops of
-            (es', ops') => parse_tokens lexer (BGroup::es') 
-                           (ILParen::(Lambda id)::ops'))
+          let
+            val (es', ops') = force_ops (Lambda id) es ops
+          in
+            parse_tokens lexer (BGroup::es') (ILParen::(Lambda id)::ops')
+          end
         | T.LParen => parse_tokens lexer (BGroup::es) (LParen::ops)
         | T.RParen => 
-          (case force_ops RParen es ops of
-            (es', ops') => parse_tokens lexer es' ops')
+          let
+            val (es', ops') = force_ops RParen es ops
+          in
+            parse_tokens lexer es' ops'
+          end
         | T.If => parse_tokens lexer (BGroup::es) (LParen::ops)
         | (T.Then | T.Else) =>
-          (case force_ops RParen es ops of
-            (es', ops') => parse_tokens lexer (BGroup::es') (LParen::ops'))
+          let
+            val (es', ops') = force_ops RParen es ops
+          in
+            parse_tokens lexer (BGroup::es') (LParen::ops')
+          end
         | T.Endif =>
           (case force_ops RParen es ops of
             ((Exp e3)::(Exp e2)::(Exp e1)::es', ops') =>
               parse_tokens lexer ((Exp(Ast.Cond(e1, e2, e3)))::es') ops'
            | _ => raise parse_error "Error parsing conditional.")
         | T.EOS => 
-          (case force_ops RParen es ops of
-            (es', ops') =>
+          let
+            val (es', ops') = force_ops RParen es ops
+          in
             (case es' of (Exp(ast)::[]) => ast
-              | _ => raise parse_error "Error parsing string."))
+              | _ => raise parse_error "Error parsing string.")
+          end
         | _ => 
           raise parse_error "Invalid token encountered when parsing string."
     end

@@ -4,11 +4,13 @@
 Group
 	signature PARSE
 	signature EVAL
+	signature TYPING
 	functor Lexers
 	structure L1Lex
     structure Ast
 	structure L1Parse
 	structure L1Cbv
+	structure Typing
 is
     tokens.sml
     lexer.sig
@@ -18,6 +20,9 @@ is
 	parse.sig
     parse.sml
     ast.sml
+
+	typing.sig
+	typing.sml
 
 	eval.sig
 	cbv.sml

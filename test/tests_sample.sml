@@ -301,7 +301,10 @@ struct
     do_test_type("Pure type 1", "fn x => x ;", tArrow(tV 0, tV 0)) ;
     do_test_type("Applied 2", "fn x => 3 + x ;", tArrow(tInt, tInt)) ;
     do_test_type("List 1", "[];", tList(tV 0)) ;
-    do_test_type("Eq type 2", "(fn x => x) = (fn y => y);", tBool) ;
+    do_test_type("Eq type 1", "((fn x => x) 3) = ((fn y => y) 5);", tBool) ;
+    (* do_test_type("Eq type 2", "(fn x => x) = (fn y => y);", tBool)  ; *)
+    do_test_type("lala", "fn x => fn y => x < y;",
+                 tArrow(tInt, tArrow(tInt, tBool))) ;
 
     true
   )

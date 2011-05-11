@@ -1,1 +1,1 @@
-mytests.sml
+tests_sample.sml
