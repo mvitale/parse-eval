@@ -289,5 +289,26 @@ struct
     case t of 
          List(V a) => List(unify a c)
        | V a => unify a c
-  end
+  end    
+  
+  (* toString s => a fully-parenthesized string representation of the
+    *  type s.
+    *)
+  fun toString Int = "int"
+    | toString Bool = "bool"
+    | toString (V v) = "V"^(Int.toString v)
+    | toString (Arrow(a, b)) =
+      let
+        val a' = toString a
+        val b' = toString b
+      in
+        "("^a'^" -> "^b'^")"
+      end
+    | toString (List a) =
+      let
+        val a' = toString a
+      in
+        "["^a'^"]"
+      end
+      
 end
